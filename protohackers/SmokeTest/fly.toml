@@ -1,0 +1,15 @@
+# fly.toml app configuration file generated for ph-smoketest-fs on 2023-09-09T17:04:27-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "ph-smoketest-fs"
+primary_region = "bos"
+
+[build]
+[[services]]
+  protocol = "tcp"
+  internal_port = 10000
+
+[[services.ports]]
+  port = 10000
