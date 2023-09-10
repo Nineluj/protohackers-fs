@@ -1,74 +1,51 @@
-﻿open System.IO
+﻿open System
 open System.Net
 open System.Net.Sockets
 
-type LoggingLevel =
-    | Error
-    | Info
-    | Trace
-
-type LoggingConfig = {
-    level: LoggingLevel
-}
-
-type Logger (config: LoggingConfig) =
-    static member withoutNewline (msg: string) =
-        msg.Replace("\n", "\\n")
-        
-    member x.trace msg =
-        match config.level with
-        | Trace -> printfn $"trace> {Logger.withoutNewline msg}"
-        | _ -> ()
-    member x.info msg =
-        match config.level with
-        | Info | Trace -> printfn $"info> {Logger.withoutNewline msg}"
-        | _ -> ()
-    member x.error msg =
-        printfn $"error> {Logger.withoutNewline msg}"
-
-/// Handle an individual client
-let handleClient (logger: Logger) (client: TcpClient) =
+let echo (logger: Logging.Logger) (client: TcpClient) : Async<Unit> =
     async {
-        logger.info "Starting handleClient"
+        client.NoDelay <- true
+        logger.info $"Echo connection opened with {client.Client.RemoteEndPoint}"
         use stream = client.GetStream()
-        // use reader = new StreamReader(stream)
-        // use writer = new StreamWriter(stream)
-        
-        let buffer: byte array = Array.zeroCreate 4096
-        let rec loop () = async {
-            let! n = stream.ReadAsync(buffer).AsTask() |> Async.AwaitTask
-            logger.info "Received from client"
-            if n = 0 then
-                client.Client.Shutdown(SocketShutdown.Both)
-                client.Close()
-                logger.info "Ending handleClient"
-            else
-                logger.trace $"Data: %A{buffer}"
-                do! stream.WriteAsync(buffer, 0, n) |> Async.AwaitTask
-                do! stream.FlushAsync() |> Async.AwaitTask
-                logger.info "Sent to client"
-                do! loop ()
-        }
+        let buffer = Array.zeroCreate 4096
+
+        let rec loop () =
+            async {
+                let! read = stream.AsyncRead(buffer, 0, buffer.Length)
+                logger.info "Received data"
+                logger.trace $"Data: %A{buffer[0 .. read - 1] |> System.Text.Encoding.ASCII.GetString}"
+
+                if read = 0 then
+                    return ()
+                else
+                    logger.info "Sending same thing back"
+                    do! stream.AsyncWrite(buffer, 0, read)
+                    return! loop ()
+            }
+
         do! loop ()
+        logger.info "Closing connection"
+        client.Client.Shutdown(SocketShutdown.Both)
+        client.Close()
     }
 
-/// Start a TcpListener and begin accepting connections
-let startServer handleClientFn (ip: IPAddress, port: int) =
-    let listener = TcpListener(ip, port)
-    printfn $"Starting listener on port {port}"
-    listener.Start()
+let server (listener: TcpListener) clientFn : Async<unit> =
+    async {
+        while true do
+            let! client = listener.AcceptTcpClientAsync() |> Async.AwaitTask
+            Async.Start(clientFn client)
+    }
 
-    let rec loop () =
-        async {
-            while true do
-                let! client = listener.AcceptTcpClientAsync() |> Async.AwaitTask
-                let! _ = (handleClientFn client) |> Async.StartChild
-                return! loop ()
-        }
-    loop ()
+let port =
+    try
+        Environment.GetEnvironmentVariable("SVC_PORT") |> int
+    with :? ArgumentNullException ->
+        failwith "Port not set"
 
-[<EntryPoint>]
-let main _args =
-    let logger = Logger({ level = Trace })
-    startServer (handleClient logger) (IPAddress.Any, 10_000) |> Async.RunSynchronously
-    0
+let logger = Logging.Logger({ level = Logging.Trace })
+let listener = TcpListener(IPAddress.Any, port)
+logger.info $"Starting TCP listener on port {port}"
+listener.Start()
+
+server listener (echo logger)
+|> Async.RunSynchronously
