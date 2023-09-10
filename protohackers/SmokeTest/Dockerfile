@@ -1,8 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 as build-env
 
 WORKDIR /src
-COPY *.fsproj .
-COPY **.fs .
+COPY *.fsproj ./
+COPY **.fs ./
 RUN dotnet restore
 RUN dotnet publish -c Release -o /publish
 

@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Content Include="setup_amazon_linux_server.sh" />
         <Content Include="Dockerfile" />
         <Compile Include="Logger.fs" />
         <Compile Include="Program.fs" />
