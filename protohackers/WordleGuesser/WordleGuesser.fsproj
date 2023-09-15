@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <RootNamespace>_3700_Basic_Socket</RootNamespace>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+      <Compile Include="Client.fs" />
+      <Compile Include="Messaging.fs" />
+      <Compile Include="Guesser.fs" />
+      <Compile Include="Program.fs" />
+      <Content Include="samples\messages\hello.json" />
+      <Content Include="samples\messages\start.json" />
+      <Content Include="samples\messages\guess.json" />
+      <Content Include="samples\messages\retry.json" />
+      <Content Include="samples\messages\error.json" />
+      <Content Include="samples\wordlist.txt" />
+      <Content Include="NLog.config">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+
+
+
+    <ItemGroup>
+      <PackageReference Include="Argu" Version="6.1.1" />
+      <PackageReference Include="FSharp.SystemTextJson" Version="1.2.42" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+      <PackageReference Include="NLog" Version="5.2.4" />
+      <PackageReference Include="NLog.Extensions.Logging" Version="5.3.4" />
+      <PackageReference Include="System.Text.Json" Version="7.0.3" />
+    </ItemGroup>
+
+
+</Project>
